@@ -2,7 +2,8 @@ export interface Product {
   id: number;
   name: string;
   description: string;
-  price: number; // Stored as DECIMAL(10,2), shown as integer in frontend
+  price: number;
   image_url: string;
   stock: number;
+  category_id: number;
 }

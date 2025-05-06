@@ -15,10 +15,12 @@ export const getProductById = async (id: number): Promise<Product | null> => {
 export const createProduct = async (
   product: Omit<Product, 'id'>
 ): Promise<number> => {
-  const { name, description, price, image_url, stock } = product;
+  const { name, description, price, image_url, stock, category_id } = product;
   const [result] = await pool.query(
-    'INSERT INTO products (name, description, price, image_url, stock) VALUES (?, ?, ?, ?, ?)',
-    [name, description, price, image_url, stock]
+    `INSERT INTO products
+     (name, description, price, image_url, stock, category_id)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [name, description, price, image_url, stock, category_id]
   );
   return (result as any).insertId;
 };
