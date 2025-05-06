@@ -1,17 +1,37 @@
 import express from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
+import { checkDbConnection } from './config/db';
 
 dotenv.config();
 
-const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+(async () => {
+  try {
+    await checkDbConnection();
 
-app.get('/test', (req, res) => {
-  res.json({ message: 'API is running' });
-});
+    const app = express();
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-});
+    // Middleware
+    app.use(
+      cors({
+        origin: process.env.CLIENT_URL || '*',
+        credentials: true,
+      })
+    );
+    app.use(express.json());
+
+    // Routes
+    app.get('/api/health', (req, res) => {
+      res.json({ status: 'ok' });
+    });
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+})();
