@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import productsRouter from './routes/products.routes';
 import { checkDbConnection } from './config/db';
 
 dotenv.config();
@@ -23,6 +24,7 @@ const PORT = process.env.PORT || 3000;
     app.use(express.json());
 
     // Routes
+    app.use('/api/products', productsRouter);
     app.get('/api/health', (req, res) => {
       res.json({ status: 'ok' });
     });
