@@ -7,7 +7,10 @@ export const getAllCustomers = async (): Promise<Customer[]> => {
 };
 
 export const getCustomerById = async (id: number): Promise<Customer | null> => {
-  const [rows] = await pool.query('SELECT * FROM customers WHERE id = ?', [id]);
+  const [rows] = await pool.query(
+    'SELECT * FROM customers WHERE id = ? LIMIT 1',
+    [id]
+  );
   const result = (rows as Customer[])[0];
   return result || null;
 };
