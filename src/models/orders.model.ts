@@ -81,5 +81,16 @@ export const updateOrder = async (
 };
 
 export const deleteOrder = async (id: number): Promise<void> => {
-  await pool.query('DELETE FROM orders WHERE id = ?', [id]);
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query('DELETE FROM order_items WHERE order_id = ?', [id]);
+    await conn.query('DELETE FROM orders WHERE id = ?', [id]);
+    await conn.commit();
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
+    conn.release();
+  }
 };
