@@ -7,7 +7,10 @@ export const getAllProducts = async (): Promise<Product[]> => {
 };
 
 export const getProductById = async (id: number): Promise<Product | null> => {
-  const [rows] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
+  const [rows] = await pool.query(
+    'SELECT * FROM products WHERE id = ? LIMIT 1',
+    [id]
+  );
   const result = (rows as Product[])[0];
   return result || null;
 };
@@ -32,7 +35,9 @@ export const updateProduct = async (
   const fields = Object.entries(product);
   if (fields.length === 0) return;
   const setClause = fields.map(([key]) => `${key} = ?`).join(', ');
-  const values = fields.map(([, value]) => value);
+  const values: (string | number | null)[] = fields.map(
+    ([, value]) => value as string | number | null
+  );
   values.push(id);
   await pool.query(`UPDATE products SET ${setClause} WHERE id = ?`, values);
 };
