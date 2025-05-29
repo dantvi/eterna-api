@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import productsRouter from './routes/products.routes';
 import customersRouter from './routes/customers.routes';
 import ordersRouter from './routes/orders.routes';
-import checkoutRoutes from './routes/checkoutRoutes';
+import checkoutRoutes from './routes/checkout.routes';
 import { checkDbConnection } from './config/db';
 
 dotenv.config();
