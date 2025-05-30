@@ -1,8 +1,13 @@
 import express from 'express';
-import { stripeWebhook } from '../controllers/webhook.controller';
+import bodyParser from 'body-parser';
+import { stripeWebhookHandler } from '../controllers/webhook.controller';
 
 const router = express.Router();
 
-router.post('/stripe', stripeWebhook);
+router.post(
+  '/',
+  bodyParser.raw({ type: 'application/json' }),
+  stripeWebhookHandler
+);
 
 export default router;

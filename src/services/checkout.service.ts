@@ -1,5 +1,5 @@
-import stripe from './stripeClient';
-import { CheckoutItem } from '../../types/checkout';
+import { stripe } from '../config/stripe';
+import { CheckoutItem } from '../types/checkout';
 
 export const createCheckoutSession = async (
   customerEmail: string,

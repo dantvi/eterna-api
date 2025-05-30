@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createCheckoutSession } from '../services/stripe/checkout.service';
+import { createCheckoutSession } from '../services/checkout.service';
 import { CheckoutItem } from '../types/checkout';
 
 export const handleCreateCheckoutSession = async (

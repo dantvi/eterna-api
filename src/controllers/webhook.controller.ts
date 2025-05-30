@@ -1,24 +1,51 @@
 import { Request, Response } from 'express';
-import { handleCheckoutCompleted } from '../services/stripe/webhook.service';
+import { stripe } from '../config/stripe';
+import { db } from '../config/db';
 
-export const stripeWebhook = async (
+export const stripeWebhookHandler = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  try {
-    const sig = req.headers['stripe-signature'];
-    if (!sig || typeof sig !== 'string') {
-      res.status(400).send('Missing Stripe signature');
-      return;
-    }
-    const result = await handleCheckoutCompleted(req.body, sig);
-    if (result.success) {
-      res.status(200).send('Webhook received');
-    } else {
-      res.status(400).send('Invalid webhook');
-    }
-  } catch (err) {
-    console.error('[webhook.controller] Error:', err);
-    res.status(500).send('Internal Server Error');
+  const sig = req.headers['stripe-signature'] as string;
+  if (!sig) {
+    console.error('[Webhook] Missing Stripe-Signature header');
+    res.status(400).send('Webhook Error: No signature');
+    return;
   }
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET as string
+    );
+  } catch (err) {
+    console.error('[Webhook] Signature verification failed:', err);
+    res.status(400).send('Webhook signature verification failed');
+    return;
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as any;
+    const orderId = session.metadata?.orderId;
+    const stripeSessionId = session.id;
+
+    if (orderId) {
+      try {
+        await db.query(
+          `UPDATE orders SET payment_status = 'Paid', order_status = 'Received', payment_id = ? WHERE id = ?`,
+          [stripeSessionId, orderId]
+        );
+        console.log(`[Webhook] Order ${orderId} updated as paid`);
+        // TODO: await updateProductStockForOrder(Number(orderId));
+      } catch (err) {
+        console.error('[Webhook] DB update failed:', err);
+      }
+    } else {
+      console.error('[Webhook] No orderId in session metadata');
+    }
+  }
+
+  res.status(200).send('Webhook received');
 };
