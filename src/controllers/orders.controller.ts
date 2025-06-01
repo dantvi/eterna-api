@@ -6,6 +6,7 @@ import {
   getOrdersByCustomer,
   updateOrder,
   deleteOrder,
+  getOrderByStripeSessionId,
 } from '../models/orders.model';
 import { OrderItem } from '../types/order';
 
@@ -70,4 +71,28 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
   }
   await deleteOrder(id);
   res.status(204).send();
+};
+
+export const getByStripeSessionId = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { sessionId } = req.params;
+  if (!sessionId) {
+    res.status(400).json({ message: 'Missing Stripe session ID' });
+    return;
+  }
+  try {
+    const order = await getOrderByStripeSessionId(sessionId);
+    if (!order) {
+      res
+        .status(404)
+        .json({ message: 'Order not found for provided session ID' });
+      return;
+    }
+    res.status(200).json(order);
+  } catch (error) {
+    console.error('Error fetching order by session ID:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 };

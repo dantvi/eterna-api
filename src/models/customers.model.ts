@@ -1,13 +1,13 @@
-import { pool } from '../config/db';
+import { db } from '../config/db';
 import { Customer } from '../types/customer';
 
 export const getAllCustomers = async (): Promise<Customer[]> => {
-  const [rows] = await pool.query('SELECT * FROM customers ORDER BY id DESC');
+  const [rows] = await db.query('SELECT * FROM customers ORDER BY id DESC');
   return rows as Customer[];
 };
 
 export const getCustomerById = async (id: number): Promise<Customer | null> => {
-  const [rows] = await pool.query(
+  const [rows] = await db.query(
     'SELECT * FROM customers WHERE id = ? LIMIT 1',
     [id]
   );
@@ -19,7 +19,7 @@ export const createCustomer = async (
   customer: Omit<Customer, 'id'>
 ): Promise<number> => {
   const { name, email, phone, address } = customer;
-  const [result] = await pool.query(
+  const [result] = await db.query(
     'INSERT INTO customers (name, email, phone, address) VALUES (?, ?, ?, ?)',
     [name, email, phone, address]
   );
@@ -37,9 +37,9 @@ export const updateCustomer = async (
     ([, value]) => value as string | number | null
   );
   values.push(id);
-  await pool.query(`UPDATE customers SET ${setClause} WHERE id = ?`, values);
+  await db.query(`UPDATE customers SET ${setClause} WHERE id = ?`, values);
 };
 
 export const deleteCustomer = async (id: number): Promise<void> => {
-  await pool.query('DELETE FROM customers WHERE id = ?', [id]);
+  await db.query('DELETE FROM customers WHERE id = ?', [id]);
 };

@@ -1,11 +1,11 @@
-import { pool } from '../config/db';
+import { db } from '../config/db';
 import { Order, OrderItem } from '../types/order';
 
 export const createOrder = async (
   order: Omit<Order, 'id' | 'created_at'>,
   items: Omit<OrderItem, 'id'>[]
 ): Promise<number> => {
-  const conn = await pool.getConnection();
+  const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
     const [orderResult] = await conn.query(
@@ -31,7 +31,7 @@ export const createOrder = async (
 };
 
 export const getAllOrders = async (): Promise<Order[]> => {
-  const [rows] = await pool.query(
+  const [rows] = await db.query(
     'SELECT * FROM orders ORDER BY created_at DESC'
   );
   return rows as Order[];
@@ -40,13 +40,13 @@ export const getAllOrders = async (): Promise<Order[]> => {
 export const getOrderById = async (
   id: number
 ): Promise<{ order: Order; items: OrderItem[] } | null> => {
-  const [orderRows] = await pool.query(
+  const [orderRows] = await db.query(
     'SELECT * FROM orders WHERE id = ? LIMIT 1',
     [id]
   );
   const order = (orderRows as Order[])[0];
   if (!order) return null;
-  const [itemRows] = await pool.query(
+  const [itemRows] = await db.query(
     'SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC',
     [id]
   );
@@ -59,7 +59,7 @@ export const getOrderById = async (
 export const getOrdersByCustomer = async (
   customerId: number
 ): Promise<Order[]> => {
-  const [rows] = await pool.query(
+  const [rows] = await db.query(
     'SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC',
     [customerId]
   );
@@ -77,11 +77,11 @@ export const updateOrder = async (
     ([, value]) => value as string | number | null
   );
   values.push(id);
-  await pool.query(`UPDATE orders SET ${setClause} WHERE id = ?`, values);
+  await db.query(`UPDATE orders SET ${setClause} WHERE id = ?`, values);
 };
 
 export const deleteOrder = async (id: number): Promise<void> => {
-  const conn = await pool.getConnection();
+  const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
     await conn.query('DELETE FROM order_items WHERE order_id = ?', [id]);
@@ -93,4 +93,26 @@ export const deleteOrder = async (id: number): Promise<void> => {
   } finally {
     conn.release();
   }
+};
+
+export const getOrderByStripeSessionId = async (
+  sessionId: string
+): Promise<{ order: Order; items: OrderItem[] } | null> => {
+  const [orderRows] = await db.query(
+    'SELECT * FROM orders WHERE payment_id = ? LIMIT 1',
+    [sessionId]
+  );
+
+  const order = (orderRows as Order[])[0];
+  if (!order) return null;
+
+  const [itemRows] = await db.query(
+    'SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC',
+    [order.id]
+  );
+
+  return {
+    order,
+    items: itemRows as OrderItem[],
+  };
 };

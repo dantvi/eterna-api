@@ -7,8 +7,8 @@ import ordersRouter from './routes/orders.routes';
 import checkoutRoutes from './routes/checkout.routes';
 import stripeRoutes from './routes/stripe.routes';
 import webhookRoutes from './routes/webhook.routes';
-import { checkDbConnection } from './config/db';
 import bodyParser from 'body-parser';
+import { checkDbConnection } from './config/db';
 
 dotenv.config();
 

@@ -1,16 +1,15 @@
-import { pool } from '../config/db';
+import { db } from '../config/db';
 import { Product } from '../types/product';
 
 export const getAllProducts = async (): Promise<Product[]> => {
-  const [rows] = await pool.query('SELECT * FROM products ORDER BY id DESC');
+  const [rows] = await db.query('SELECT * FROM products ORDER BY id DESC');
   return rows as Product[];
 };
 
 export const getProductById = async (id: number): Promise<Product | null> => {
-  const [rows] = await pool.query(
-    'SELECT * FROM products WHERE id = ? LIMIT 1',
-    [id]
-  );
+  const [rows] = await db.query('SELECT * FROM products WHERE id = ? LIMIT 1', [
+    id,
+  ]);
   const result = (rows as Product[])[0];
   return result || null;
 };
@@ -19,7 +18,7 @@ export const createProduct = async (
   product: Omit<Product, 'id'>
 ): Promise<number> => {
   const { name, description, price, image_url, stock, category_id } = product;
-  const [result] = await pool.query(
+  const [result] = await db.query(
     `INSERT INTO products
      (name, description, price, image_url, stock, category_id)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -39,9 +38,9 @@ export const updateProduct = async (
     ([, value]) => value as string | number | null
   );
   values.push(id);
-  await pool.query(`UPDATE products SET ${setClause} WHERE id = ?`, values);
+  await db.query(`UPDATE products SET ${setClause} WHERE id = ?`, values);
 };
 
 export const deleteProduct = async (id: number): Promise<void> => {
-  await pool.query('DELETE FROM products WHERE id = ?', [id]);
+  await db.query('DELETE FROM products WHERE id = ?', [id]);
 };
