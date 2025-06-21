@@ -5,17 +5,18 @@ import admin from 'firebase-admin';
 export const getAllCustomers = async (): Promise<Customer[]> => {
   const snapshot = await db
     .collection('customers')
-    .orderBy('created_at', 'desc')
+    .orderBy('createdAt', 'desc')
     .get();
-  return snapshot.docs.map(
-    (doc) => ({ id: doc.id, ...doc.data() } as Customer)
-  );
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<Customer, 'id'>),
+  }));
 };
 
 export const getCustomerById = async (id: string): Promise<Customer | null> => {
   const doc = await db.collection('customers').doc(id).get();
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() } as Customer;
+  return { id: doc.id, ...(doc.data() as Omit<Customer, 'id'>) };
 };
 
 export const createCustomer = async (
@@ -23,7 +24,7 @@ export const createCustomer = async (
 ): Promise<string> => {
   const docRef = await db.collection('customers').add({
     ...customer,
-    created_at: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   return docRef.id;
 };

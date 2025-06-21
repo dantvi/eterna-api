@@ -3,7 +3,7 @@ import { Order, OrderItem } from '../types/order';
 import admin from 'firebase-admin';
 
 export const createOrder = async (
-  order: Omit<Order, 'id' | 'created_at'>,
+  order: Omit<Order, 'id' | 'createdAt'>,
   items: Omit<OrderItem, 'id'>[]
 ): Promise<string> => {
   const batch = db.batch();
@@ -13,7 +13,7 @@ export const createOrder = async (
     customer_id: order.customer_id,
     total_price: order.total_price,
     status: order.status,
-    created_at: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
   items.forEach((item) => {
@@ -31,9 +31,12 @@ export const createOrder = async (
 export const getAllOrders = async (): Promise<Order[]> => {
   const snapshot = await db
     .collection('orders')
-    .orderBy('created_at', 'desc')
+    .orderBy('createdAt', 'desc')
     .get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Order));
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<Order, 'id'>),
+  }));
 };
 
 export const getOrderById = async (
@@ -42,16 +45,17 @@ export const getOrderById = async (
   const orderDoc = await db.collection('orders').doc(id).get();
   if (!orderDoc.exists) return null;
 
-  const order = { id: orderDoc.id, ...orderDoc.data() } as Order;
+  const order = { id: orderDoc.id, ...(orderDoc.data() as Omit<Order, 'id'>) };
 
   const itemsSnapshot = await db
     .collection('orders')
     .doc(id)
     .collection('items')
     .get();
-  const items = itemsSnapshot.docs.map(
-    (doc) => ({ id: doc.id, ...doc.data() } as OrderItem)
-  );
+  const items = itemsSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<OrderItem, 'id'>),
+  }));
 
   return { order, items };
 };
@@ -62,14 +66,17 @@ export const getOrdersByCustomer = async (
   const snapshot = await db
     .collection('orders')
     .where('customer_id', '==', customerId)
-    .orderBy('created_at', 'desc')
+    .orderBy('createdAt', 'desc')
     .get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Order));
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<Order, 'id'>),
+  }));
 };
 
 export const updateOrder = async (
   id: string,
-  data: Partial<Omit<Order, 'id' | 'created_at'>>
+  data: Partial<Omit<Order, 'id' | 'createdAt'>>
 ): Promise<void> => {
   await db.collection('orders').doc(id).update(data);
 };

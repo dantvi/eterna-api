@@ -5,15 +5,18 @@ import admin from 'firebase-admin';
 export const getAllProducts = async (): Promise<Product[]> => {
   const snapshot = await db
     .collection('products')
-    .orderBy('created_at', 'desc')
+    .orderBy('createdAt', 'desc')
     .get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Product));
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<Product, 'id'>),
+  }));
 };
 
 export const getProductById = async (id: string): Promise<Product | null> => {
   const doc = await db.collection('products').doc(id).get();
   if (!doc.exists) return null;
-  return { id: doc.id, ...doc.data() } as Product;
+  return { id: doc.id, ...(doc.data() as Omit<Product, 'id'>) };
 };
 
 export const createProduct = async (
@@ -21,7 +24,7 @@ export const createProduct = async (
 ): Promise<string> => {
   const docRef = await db.collection('products').add({
     ...product,
-    created_at: admin.firestore.FieldValue.serverTimestamp(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   return docRef.id;
 };
