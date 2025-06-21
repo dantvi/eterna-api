@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import productsRouter from './routes/products.routes';
 import customersRouter from './routes/customers.routes';
 import ordersRouter from './routes/orders.routes';
-import { checkDbConnection } from './config/db';
+import { db } from './config/firestore';
 
 dotenv.config();
 
@@ -12,7 +12,11 @@ const PORT = process.env.PORT || 3000;
 
 (async () => {
   try {
-    await checkDbConnection();
+    await db
+      .collection('healthcheck')
+      .doc('ping')
+      .set({ timestamp: new Date() });
+    console.log('Firestore connected');
 
     const app = express();
 
@@ -29,6 +33,7 @@ const PORT = process.env.PORT || 3000;
     app.use('/api/products', productsRouter);
     app.use('/api/customers', customersRouter);
     app.use('/api/orders', ordersRouter);
+
     app.get('/api/health', (req, res) => {
       res.json({ status: 'ok' });
     });

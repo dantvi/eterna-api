@@ -1,96 +1,96 @@
-import { pool } from '../config/db';
+import { db } from '../config/firestore';
 import { Order, OrderItem } from '../types/order';
+import admin from 'firebase-admin';
 
 export const createOrder = async (
-  order: Omit<Order, 'id' | 'created_at'>,
+  order: Omit<Order, 'id' | 'createdAt'>,
   items: Omit<OrderItem, 'id'>[]
-): Promise<number> => {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    const [orderResult] = await conn.query(
-      'INSERT INTO orders (customer_id, total_price, status, created_at) VALUES (?, ?, ?, NOW())',
-      [order.customer_id, order.total_price, order.status]
-    );
-    const orderId = (orderResult as any).insertId;
-    const itemInserts = items.map((item) =>
-      conn.query(
-        'INSERT INTO order_items (order_id, product_id, quantity) VALUES (?, ?, ?)',
-        [orderId, item.product_id, item.quantity]
-      )
-    );
-    await Promise.all(itemInserts);
-    await conn.commit();
-    return orderId;
-  } catch (error) {
-    await conn.rollback();
-    throw error;
-  } finally {
-    conn.release();
-  }
+): Promise<string> => {
+  const batch = db.batch();
+
+  const orderRef = db.collection('orders').doc();
+  batch.set(orderRef, {
+    customer_id: order.customer_id,
+    total_price: order.total_price,
+    status: order.status,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  items.forEach((item) => {
+    const itemRef = orderRef.collection('items').doc();
+    batch.set(itemRef, {
+      product_id: item.product_id,
+      quantity: item.quantity,
+    });
+  });
+
+  await batch.commit();
+  return orderRef.id;
 };
 
 export const getAllOrders = async (): Promise<Order[]> => {
-  const [rows] = await pool.query(
-    'SELECT * FROM orders ORDER BY created_at DESC'
-  );
-  return rows as Order[];
+  const snapshot = await db
+    .collection('orders')
+    .orderBy('createdAt', 'desc')
+    .get();
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<Order, 'id'>),
+  }));
 };
 
 export const getOrderById = async (
-  id: number
+  id: string
 ): Promise<{ order: Order; items: OrderItem[] } | null> => {
-  const [orderRows] = await pool.query(
-    'SELECT * FROM orders WHERE id = ? LIMIT 1',
-    [id]
-  );
-  const order = (orderRows as Order[])[0];
-  if (!order) return null;
-  const [itemRows] = await pool.query(
-    'SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC',
-    [id]
-  );
-  return {
-    order,
-    items: itemRows as OrderItem[],
-  };
+  const orderDoc = await db.collection('orders').doc(id).get();
+  if (!orderDoc.exists) return null;
+
+  const order = { id: orderDoc.id, ...(orderDoc.data() as Omit<Order, 'id'>) };
+
+  const itemsSnapshot = await db
+    .collection('orders')
+    .doc(id)
+    .collection('items')
+    .get();
+  const items = itemsSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<OrderItem, 'id'>),
+  }));
+
+  return { order, items };
 };
 
 export const getOrdersByCustomer = async (
-  customerId: number
+  customerId: string
 ): Promise<Order[]> => {
-  const [rows] = await pool.query(
-    'SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC',
-    [customerId]
-  );
-  return rows as Order[];
+  const snapshot = await db
+    .collection('orders')
+    .where('customer_id', '==', customerId)
+    .orderBy('createdAt', 'desc')
+    .get();
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<Order, 'id'>),
+  }));
 };
 
 export const updateOrder = async (
-  id: number,
-  data: Partial<Omit<Order, 'id' | 'created_at'>>
+  id: string,
+  data: Partial<Omit<Order, 'id' | 'createdAt'>>
 ): Promise<void> => {
-  const fields = Object.entries(data);
-  if (fields.length === 0) return;
-  const setClause = fields.map(([key]) => `${key} = ?`).join(', ');
-  const values: (string | number | null)[] = fields.map(
-    ([, value]) => value as string | number | null
-  );
-  values.push(id);
-  await pool.query(`UPDATE orders SET ${setClause} WHERE id = ?`, values);
+  await db.collection('orders').doc(id).update(data);
 };
 
-export const deleteOrder = async (id: number): Promise<void> => {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    await conn.query('DELETE FROM order_items WHERE order_id = ?', [id]);
-    await conn.query('DELETE FROM orders WHERE id = ?', [id]);
-    await conn.commit();
-  } catch (error) {
-    await conn.rollback();
-    throw error;
-  } finally {
-    conn.release();
-  }
+export const deleteOrder = async (id: string): Promise<void> => {
+  const batch = db.batch();
+  const orderRef = db.collection('orders').doc(id);
+
+  const itemsSnapshot = await orderRef.collection('items').get();
+  itemsSnapshot.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+
+  batch.delete(orderRef);
+
+  await batch.commit();
 };
