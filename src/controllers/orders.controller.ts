@@ -29,7 +29,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const getById = async (req: Request, res: Response): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = req.params.id;
   const order = await getOrderById(id);
   if (!order) {
     res.status(404).json({ message: 'Order not found' });
@@ -39,9 +39,9 @@ export const getById = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
-  const customerId = req.query.customerId;
+  const customerId = req.query.customerId as string | undefined;
   if (customerId) {
-    const orders = await getOrdersByCustomer(parseInt(customerId as string));
+    const orders = await getOrdersByCustomer(customerId);
     res.json(orders);
   } else {
     const orders = await getAllOrders();
@@ -50,7 +50,7 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const update = async (req: Request, res: Response): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = req.params.id;
   const order = await getOrderById(id);
   if (!order) {
     res.status(404).json({ message: 'Order not found' });
@@ -62,7 +62,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const remove = async (req: Request, res: Response): Promise<void> => {
-  const id = parseInt(req.params.id);
+  const id = req.params.id;
   const order = await getOrderById(id);
   if (!order) {
     res.status(404).json({ message: 'Order not found' });
