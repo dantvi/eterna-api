@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import productsRouter from './routes/products.routes';
 import customersRouter from './routes/customers.routes';
 import ordersRouter from './routes/orders.routes';
+import categoriesRouter from './routes/categories.routes';
 import { db } from './config/firestore';
 
 dotenv.config();
@@ -33,6 +34,7 @@ const PORT = process.env.PORT || 3000;
     app.use('/api/products', productsRouter);
     app.use('/api/customers', customersRouter);
     app.use('/api/orders', ordersRouter);
+    app.use('/api/categories', categoriesRouter);
 
     app.get('/api/health', (req, res) => {
       res.json({ status: 'ok' });
